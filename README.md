@@ -6,7 +6,7 @@ O **Easy Investimentos** é uma plataforma full-stack de gestão financeira e an
 
 ## 📸 Mockup do Projeto
 
-> *Dica: Você pode hospedar a imagem no próprio GitHub (na pasta assets) ou usar um link do Google Drive/Postimages.*
+![Preview do Easy Investimentos](./preview/preview-do-projeto.png)
 
 -----
 
