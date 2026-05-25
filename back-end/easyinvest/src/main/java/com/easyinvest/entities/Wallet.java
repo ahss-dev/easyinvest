@@ -1,6 +1,8 @@
 package com.easyinvest.entities;
 
+import com.easyinvest.exceptions.InsufficientBalanceException;
 import jakarta.persistence.*;
+import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 
@@ -25,19 +27,41 @@ public class Wallet {
         user.setWallet(this);
     }
 
+    public Wallet() {
+    }
+
     public User getUser() {
         return user;
     }
 
-    public java.util.UUID getId() { return id; }
+    public java.util.UUID getId() {
+        return id;
+    }
 
-    public BigDecimal getBalance() { return balance; }
+    public BigDecimal getBalance() {
+        return balance;
+    }
 
     public void addBalance(BigDecimal value) {
         this.balance = this.balance.add(value);
     }
 
-    public void subtractBalance(BigDecimal value) {
-        this.balance = this.balance.subtract(value);
+    public void credit(BigDecimal amount) {
+        if (amount == null|| amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valor inválido");
+        }
+        this.balance = this.balance.add(amount);
+    }
+
+    public void debit(BigDecimal amount){
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valor inválido");
+        }
+
+        if (this.balance.compareTo(amount) < 0) {
+            throw new InsufficientBalanceException("Saldo Insuficiente");
+        }
+
+        this.balance = this.balance.subtract(amount);
     }
 }

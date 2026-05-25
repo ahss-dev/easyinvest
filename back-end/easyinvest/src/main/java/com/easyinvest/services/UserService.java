@@ -1,10 +1,11 @@
 package com.easyinvest.services;
-import com.easyinvest.dto.UserResponseDTO;
-import com.easyinvest.dto.UserUpdateDTO;
-import com.easyinvest.dto.UserCreateDTO;
+import com.easyinvest.dtos.UserResponseDTO;
+import com.easyinvest.dtos.UserUpdateDTO;
+import com.easyinvest.dtos.UserCreateDTO;
 import com.easyinvest.entities.User;
 import com.easyinvest.entities.Wallet;
 import com.easyinvest.repositories.UserRepository;
+import com.easyinvest.security.AuthenticatedUserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -13,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class UserService {
@@ -29,7 +29,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public UserResponseDTO createUser(UserCreateDTO dto) {
+    public void createUser(UserCreateDTO dto) {
 
         userRepository.findByEmail(dto.getEmail())
                 .ifPresent(user -> {
@@ -50,24 +50,22 @@ public class UserService {
                 dto.getCpf()
         );
 
+        user.updateContactInfo(
+                dto.getPhone(),
+                dto.getAddress(),
+                dto.getSex()
+        );
+
         Wallet wallet = new Wallet(user, initialBalance);
         user.setWallet(wallet);
 
-        user.updateContactInfo(dto.getPhone(), dto.getAddress());
+        user.updateContactInfo(dto.getPhone(), dto.getAddress(), dto.getSex());
 
-        User saved = userRepository.save(user);
-
-        return new UserResponseDTO(
-                saved.getId().toString(),
-                saved.getName(),
-                saved.getEmail()
-        );
+        userRepository.save(user);
     }
 
     public List<UserResponseDTO> findAll() {
-        if (userRepository.findAll().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum usuário encontrado!");
-        }
+
         return userRepository.findAll()
                 .stream()
                 .map(user -> new UserResponseDTO(
@@ -78,9 +76,7 @@ public class UserService {
                 .toList();
     }
 
-    public UserResponseDTO findById(String id) {
-        User user = userRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado!"));
+    public UserResponseDTO findUserAuthenticatedById(User user) {
         return new UserResponseDTO(
                 user.getId().toString(),
                 user.getName(),
@@ -88,17 +84,15 @@ public class UserService {
         );
     }
 
-    public UserResponseDTO update(String id, UserUpdateDTO dto) {
-        User user = userRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+    public UserResponseDTO updateAuthenticatedUser(User user, UserUpdateDTO dto) {
         if (dto.getName() != null) {
             user.changeName(dto.getName());
         }
-
-        user.updateContactInfo(dto.getPhone(), dto.getAddress());
-
+        if (dto.getEmail() != null) {
+            user.changeEmail(dto.getEmail());
+        }
+        user.updateContactInfo(dto.getPhone(), dto.getAddress(), dto.getSex());
         User updated = userRepository.save(user);
-
         return new UserResponseDTO(
                 updated.getId().toString(),
                 updated.getName(),
@@ -106,16 +100,12 @@ public class UserService {
         );
     }
 
-    public void delete(String id) {
-        User user = userRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+    public void deleteAuthenticatedUser (User user) {
         userRepository.delete(user);
     }
 
-    public BigDecimal getUserBalance(String id) {
-        User user = userRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado!"));
-        return user.getWallet().getBalance();
+    public BigDecimal getAuthenticatedUserBalance (User user) {
+        BigDecimal balance = user.getWallet().getBalance();
+        return balance != null ? balance : BigDecimal.ZERO;
     }
-
 }

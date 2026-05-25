@@ -1,7 +1,7 @@
 package com.easyinvest.entities;
-
 import java.util.UUID;
 import jakarta.persistence.*;
+import com.easyinvest.enums.Sex;
 
 @Entity
 @Table(name = "users")
@@ -19,7 +19,8 @@ public class User {
     private String phone;
     @Column(unique = true, nullable = false)
     private String cpf;
-    private String sex;
+    @Enumerated(EnumType.STRING)
+    private Sex sex;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Wallet wallet;
@@ -30,6 +31,8 @@ public class User {
         changePassword(password);
         changeCpf(cpf);
     }
+
+    public User (){}
 
     public UUID getId() {
         return id;
@@ -76,8 +79,16 @@ public class User {
         return phone;
     }
 
-    public void updateContactInfo(String phone, String address) {
+    public Sex getSex() {return sex;}
+
+    public void updateContactInfo(String phone, String address, Sex sex) {
+        if ( phone.isBlank() || phone.length() != 11 || !phone.matches("\\d{11}") ) {
+            throw new IllegalArgumentException("Digite um número válido!");
+        } else if (address == null || address.isBlank()) {
+            throw new IllegalArgumentException("Digite um endereço!");
+        }
         this.address = address;
+        this.sex = sex;
         this.phone = phone;
     }
 

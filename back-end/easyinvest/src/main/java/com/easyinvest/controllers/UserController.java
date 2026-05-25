@@ -1,36 +1,38 @@
 package com.easyinvest.controllers;
 
-import com.easyinvest.dto.UserCreateDTO;
-import com.easyinvest.dto.UserResponseDTO;
-import com.easyinvest.dto.UserUpdateDTO;
+import com.easyinvest.dtos.UserCreateDTO;
+import com.easyinvest.dtos.UserResponseDTO;
+import com.easyinvest.dtos.UserUpdateDTO;
 import com.easyinvest.entities.User;
+import com.easyinvest.security.AuthenticatedUserService;
 import com.easyinvest.services.UserService;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
 
     private final UserService service;
+    private final AuthenticatedUserService authenticatedUserService;
 
-    public UserController(UserService service) {
+    public UserController(UserService service,  AuthenticatedUserService authenticatedUserService) {
         this.service = service;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
-    //post não pode retornar nada, mudar depois, apenas criar.
     @PostMapping
-    public ResponseEntity<UserResponseDTO> create(@RequestBody @Valid UserCreateDTO dto) {
-        UserResponseDTO user = service.createUser(dto);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<Void> create(@RequestBody @Valid UserCreateDTO dto) {
+        service.createUser(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping
@@ -38,27 +40,29 @@ public class UserController {
         return ResponseEntity.ok(service.findAll());
     }
 
-    @GetMapping("/id")
-    public ResponseEntity<UserResponseDTO> findById(@RequestParam String id) {
-        return ResponseEntity.ok(service.findById(id));
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDTO> findUserAuthenticatedById() {
+        UserResponseDTO response = service.findUserAuthenticatedById(authenticatedUserService.getAuthenticatedUser());
+        return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> update(
-            @PathVariable String id,
+    @PutMapping("/me")
+    public ResponseEntity<UserResponseDTO> updateAuthenticatedUser(
             @RequestBody UserUpdateDTO dto
     ) {
-        return ResponseEntity.ok(service.update(id, dto));
+        UserResponseDTO response = service.updateAuthenticatedUser(authenticatedUserService.getAuthenticatedUser(), dto);
+        return ResponseEntity.ok(response);
     }
 
-    public ResponseEntity<Void> deleteById(@PathVariable String id) {
-        service.delete(id);
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAuthenticatedUser() {
+        service.deleteAuthenticatedUser(authenticatedUserService.getAuthenticatedUser());
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{id}/wallet")
-    public ResponseEntity<BigDecimal> getBalance(@PathVariable String id) {
-        BigDecimal balance = service.getUserBalance(id);
+    @GetMapping("/me/wallet")
+    public ResponseEntity<BigDecimal> getBalance() {
+        BigDecimal balance = service.getAuthenticatedUserBalance(authenticatedUserService.getAuthenticatedUser());
         return ResponseEntity.ok(balance);
     }
 }

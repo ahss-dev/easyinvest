@@ -1,4 +1,4 @@
-package com.easyinvest.dto;
+package com.easyinvest.dtos;
 
 public class UserResponseDTO {
 
